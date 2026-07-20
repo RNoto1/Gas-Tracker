@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Outback MPG Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+    :root {
+        --primary: #6d4aff;
+        --primary-dark: #563dcf;
+        --accent: #ffcc00;
+        --bg: #f0f4ff;
+        --card-bg: #ffffff;
+        --text: #333;
+        --muted: #7a7a8c;
+        --green: #2ecc71;
+        --green-dark: #27ae60;
+        --orange: #e67e22;
+        --red: #e74c3c;
+        --red-dark: #c0392b;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background-color: var(--bg);
+        margin: 0;
+        color: var(--text);
+        overflow-x: hidden;
+    }
+
+    #app-container {
+        max-width: 600px;
+        margin: 0 auto;
+        min-height: 100vh;
+        position: relative;
+    }
+
+    .screen { display: none; padding: 20px; animation: fadeIn 0.4s ease; }
+    .screen.active { display: block; }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    h1, h2, h3 { font-family: 'Fredoka', 'Segoe UI', sans-serif; text-align: center; color: var(--primary); margin-bottom: 12px; }
+    h1 {
+        margin-top: 10px; font-size: 2.1rem; font-weight: 700; letter-spacing: -0.5px;
+        background: linear-gradient(120deg, var(--primary), #9d6bff);
+        -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .subtitle { text-align: center; color: var(--muted); margin-top: 0; font-size: 1.02rem; }
+    .car-card h2 { font-family: 'Fredoka', sans-serif; font-weight: 600; letter-spacing: -0.3px; }
+
+    /* Car Selection */
+    .car-selector-container {
+        display: flex;
+        justify-content: center;
+        align-items: stretch;
+        flex-wrap: wrap;
+        gap: 20px;
+        margin-top: 30px;
+    }
+
+    .car-card {
+        background: var(--card-bg);
+        border-radius: 20px;
+        padding: 24px 20px;
+        width: 45%;
+        min-width: 150px;
+        text-align: center;
+        cursor: pointer;
+        box-shadow: 0 8px 0 rgba(0,0,0,0.1);
+        transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+        border: 4px solid transparent;
+    }
+    .car-card:active { transform: scale(0.96); box-shadow: 0 4px 0 rgba(0,0,0,0.1); }
+    .car-card:hover { border-color: var(--accent); transform: translateY(-5px); }
+    .car-card:focus-visible { outline: 3px solid var(--primary); outline-offset: 3px; }
+
+    .car-visual { width: 150px; height: 78px; margin: 0 auto 18px; }
+    .car-visual svg { width: 100%; height: 100%; display: block; overflow: visible; }
+    .car-card:hover .car-visual { transform: translateY(-2px); }
+    .car-visual { transition: transform 0.2s; }
+
+    .badge {
+        display: inline-block; background: var(--accent); color: #5a4600;
+        padding: 5px 14px; border-radius: 15px; font-size: 0.8rem; font-weight: 700;
+        margin-top: 10px; font-family: 'Fredoka', sans-serif; letter-spacing: 0.2px;
+        box-shadow: 0 3px 0 rgba(0,0,0,0.08);
+    }
+
+    .home-actions { margin-top: 36px; }
+
+    /* Forms */
+    .input-group { margin-bottom: 16px; }
+    .input-row { display: flex; gap: 12px; }
+    .input-row .input-group { flex: 1; }
+
+    label { display: block; margin-bottom: 6px; font-weight: bold; color: var(--primary); }
+
+    input {
+        width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 10px;
+        font-size: 16px; transition: border-color 0.2s;
+    }
+    input:focus { border-color: var(--primary); outline: none; }
+    input.invalid { border-color: var(--red); background: #fff5f4; }
+
+    .field-error {
+        color: var(--red); font-size: 0.82rem; margin-top: 5px; min-height: 1em;
+    }
+    .form-hint { color: var(--muted); font-size: 0.85rem; text-align: center; margin: 4px 0 16px; }
+
+    /* Buttons */
+    button {
+        width: 100%; padding: 15px; border: none; border-radius: 10px;
+        font-size: 18px; font-weight: bold; cursor: pointer; transition: transform 0.1s, filter 0.2s;
+        margin-top: 10px;
+    }
+    button:active { transform: scale(0.98); }
+    button:focus-visible { outline: 3px solid var(--primary-dark); outline-offset: 2px; }
+
+    .btn-submit { background-color: var(--green); color: white; box-shadow: 0 5px 0 var(--green-dark); }
+    .btn-primary { background-color: var(--primary); color: white; box-shadow: 0 5px 0 var(--primary-dark); }
+    .btn-secondary { background-color: var(--primary); color: white; box-shadow: 0 5px 0 var(--primary-dark); margin-top: 6px; }
+    .btn-ghost {
+        background: white; color: var(--primary); box-shadow: 0 4px 0 rgba(0,0,0,0.08);
+        border: 2px solid var(--primary);
+    }
+    .btn-back {
+        background: none; color: var(--primary); font-size: 16px; width: auto;
+        padding: 6px 10px; box-shadow: none; text-align: left; margin: 0;
+    }
+    .btn-danger { background-color: var(--red); color: white; box-shadow: 0 5px 0 var(--red-dark); margin-top: 20px; }
+
+    /* Header bar */
+    .header-bar { display: flex; align-items: center; margin-bottom: 20px; }
+    .header-bar h2 { flex: 1; margin: 0; }
+    .header-bar .spacer { width: 70px; }
+
+    /* Dashboard */
+    .car-toggle {
+        display: flex; gap: 8px; background: #e6ebfb; padding: 6px; border-radius: 14px; margin-bottom: 20px;
+    }
+    .car-toggle button {
+        flex: 1; margin: 0; padding: 12px; font-size: 15px; border-radius: 10px;
+        background: transparent; color: var(--muted); box-shadow: none;
+    }
+    .car-toggle button.active { background: white; color: var(--primary); box-shadow: 0 3px 0 rgba(0,0,0,0.08); }
+
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+    .stat-card { background: white; padding: 16px; border-radius: 15px; text-align: center; box-shadow: 0 4px 0 rgba(0,0,0,0.1); }
+    .stat-card h4 { margin: 0 0 4px; color: var(--muted); font-size: 0.85rem; font-weight: bold; }
+    .big-number { font-size: 1.9rem; font-weight: bold; color: var(--primary); }
+
+    .section-title { margin: 24px 0 12px; }
+
+    .rankings-list, .history-list {
+        background: white; border-radius: 15px; padding: 8px 16px; margin-bottom: 8px;
+    }
+    .rank-item, .history-item {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 12px 4px; border-bottom: 1px solid #eee;
+    }
+    .rank-item:last-child, .history-item:last-child { border-bottom: none; }
+    .rank-winner { background-color: #fffbe6; border-left: 5px solid var(--accent); font-weight: bold; padding-left: 12px; border-radius: 6px; }
+    .rank-mpg { font-size: 1.15em; color: var(--primary); font-weight: bold; }
+    .warn-note { color: var(--orange); font-size: 0.78rem; }
+    .empty-note { color: var(--muted); text-align: center; padding: 16px; }
+
+    .history-meta { color: var(--muted); font-size: 0.82rem; }
+    .history-delete {
+        width: auto; margin: 0; padding: 6px 10px; font-size: 0.8rem;
+        background: #fbeaea; color: var(--red); box-shadow: none;
+    }
+
+    /* Comparison */
+    .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .compare-col { background: white; border-radius: 15px; padding: 16px; text-align: center; box-shadow: 0 4px 0 rgba(0,0,0,0.1); }
+    .compare-col h3 { margin-top: 0; }
+    .compare-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; font-size: 0.9rem; }
+    .compare-row:last-child { border-bottom: none; }
+    .winner-tag { display: inline-block; background: var(--green); color: white; font-size: 0.7rem; padding: 2px 8px; border-radius: 10px; margin-top: 6px; }
+
+    .data-controls { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+
+    /* Zoom Animation */
+    #zoom-overlay {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(255,255,255,0.9); z-index: 100; display: flex;
+        align-items: center; justify-content: center; overflow: hidden;
+        opacity: 0; pointer-events: none; transition: opacity 0.3s;
+    }
+    #zoom-overlay.active { opacity: 1; pointer-events: auto; }
+    .zoom-car-anim {
+        width: 200px; height: 104px; position: absolute; left: -240px;
+        filter: drop-shadow(0 8px 8px rgba(0,0,0,0.2));
+    }
+    .zoom-car-anim svg { width: 100%; height: 100%; overflow: visible; }
+    @keyframes zoomBy {
+        0% { left: -240px; transform: scale(0.8); }
+        50% { left: 50%; transform: translateX(-50%) scale(1.2); }
+        100% { left: 130%; transform: translateX(-50%) scale(0.8); }
+    }
+    .zooming { animation: zoomBy 0.8s ease-in-out forwards; }
+
+    /* Toast */
+    #toast {
+        position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(120px);
+        background: #2d2d3a; color: white; padding: 14px 22px; border-radius: 12px;
+        font-weight: bold; box-shadow: 0 6px 20px rgba(0,0,0,0.25); z-index: 200;
+        transition: transform 0.35s cubic-bezier(.2,1.2,.3,1); max-width: 90%; text-align: center;
+    }
+    #toast.show { transform: translateX(-50%) translateY(0); }
+    #toast.success { background: var(--green-dark); }
+    #toast.error { background: var(--red-dark); }
+
+    @media (prefers-reduced-motion: reduce) {
+        .screen, .zooming, #zoom-overlay, #toast, .car-card { animation: none !important; transition: none !important; }
+    }
+</style>
+</head>
+<body>
+<div id="app-container">
+
+    <!-- SCREEN 1: Car Selection -->
+    <div id="screen-select" class="screen active">
+        <h1>Pick Your Pony</h1>
+        <p class="subtitle">Two Outbacks. One question: who sips less gas?</p>
+
+        <div class="car-selector-container">
+            <div class="car-card" tabindex="0" role="button" onclick="selectCar('2022')" onkeydown="cardKey(event,'2022')">
+                <div class="car-visual" aria-hidden="true">
+                    <!-- 2022 Outback: wagon, brown -->
+                    <svg viewBox="0 0 200 104" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="body22" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0" stop-color="#a9784f"/>
+                                <stop offset="1" stop-color="#7a5233"/>
+                            </linearGradient>
+                            <linearGradient id="glass22" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0" stop-color="#f0e7dc"/>
+                                <stop offset="1" stop-color="#d3bfa0"/>
+                            </linearGradient>
+                        </defs>
+                        <ellipse cx="100" cy="92" rx="82" ry="7" fill="rgba(0,0,0,0.10)"/>
+                        <!-- roof rails (long wagon roof) -->
+                        <rect x="54" y="26" width="86" height="4" rx="2" fill="#2a3038"/>
+                        <!-- body: flat wagon roof, upright rear -->
+                        <path d="M12,78
+                                 L16,56
+                                 C17,49 24,44 33,43
+                                 L54,32
+                                 C58,30 63,29 68,29
+                                 L150,29
+                                 C160,29 168,33 173,42
+                                 L182,58
+                                 C185,64 185,73 183,78
+                                 Z" fill="url(#body22)"/>
+                        <!-- lower cladding (Outback signature) -->
+                        <path d="M12,78 L183,78 L181,84 C180,86 178,87 175,87 L20,87 C17,87 15,86 14,84 Z" fill="#33383e"/>
+                        <!-- greenhouse: boxy wagon windows -->
+                        <path d="M60,34 L148,34 C151,34 153,36 153,39 L153,42 L58,42 L58,39 C58,36 58,34 60,34 Z" fill="url(#glass22)"/>
+                        <path d="M84,34 L84,42 M114,34 L114,42" stroke="#7a5233" stroke-width="1.5"/>
+                        <!-- door line + handle -->
+                        <path d="M100,44 L100,74" stroke="rgba(0,0,0,0.18)" stroke-width="1.5"/>
+                        <rect x="108" y="52" width="10" height="3" rx="1.5" fill="rgba(0,0,0,0.25)"/>
+                        <!-- lights -->
+                        <path d="M173,48 l7,3 -1,7 -7,-2 z" fill="#ffe27a"/>
+                        <rect x="14" y="58" width="5" height="9" rx="1.5" fill="#ff5a5a"/>
+                        <!-- wheels -->
+                        <circle cx="54" cy="84" r="15" fill="#23262b"/>
+                        <circle cx="54" cy="84" r="7" fill="#c7ccd2"/>
+                        <circle cx="54" cy="84" r="3" fill="#8a9099"/>
+                        <circle cx="144" cy="84" r="15" fill="#23262b"/>
+                        <circle cx="144" cy="84" r="7" fill="#c7ccd2"/>
+                        <circle cx="144" cy="84" r="3" fill="#8a9099"/>
+                    </svg>
+                </div>
+                <h2>2022 Subaru</h2>
+                <span class="badge">The Young Buck</span>
+            </div>
+            <div class="car-card" tabindex="0" role="button" onclick="selectCar('2014')" onkeydown="cardKey(event,'2014')">
+                <div class="car-visual" aria-hidden="true">
+                    <!-- 2014 Outback: wagon, red -->
+                    <svg viewBox="0 0 200 104" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="body14" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0" stop-color="#d64b45"/>
+                                <stop offset="1" stop-color="#a8322d"/>
+                            </linearGradient>
+                            <linearGradient id="glass14" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0" stop-color="#f6e7e6"/>
+                                <stop offset="1" stop-color="#e3bab7"/>
+                            </linearGradient>
+                        </defs>
+                        <ellipse cx="100" cy="92" rx="82" ry="7" fill="rgba(0,0,0,0.10)"/>
+                        <!-- roof rails (boxier, flatter) -->
+                        <rect x="54" y="26" width="86" height="4" rx="2" fill="#2a3038"/>
+                        <!-- body: flatter roof, more upright rear (older wagon) -->
+                        <path d="M12,78
+                                 L16,56
+                                 C17,49 24,44 33,43
+                                 L54,32
+                                 C58,30 63,29 68,29
+                                 L150,29
+                                 C160,29 168,33 173,42
+                                 L182,58
+                                 C185,64 185,73 183,78
+                                 Z" fill="url(#body14)"/>
+                        <!-- lower cladding -->
+                        <path d="M12,78 L183,78 L181,84 C180,86 178,87 175,87 L20,87 C17,87 15,86 14,84 Z" fill="#33383e"/>
+                        <!-- greenhouse: taller, boxier windows -->
+                        <path d="M60,34 L148,34 C151,34 153,36 153,39 L153,42 L58,42 L58,39 C58,36 58,34 60,34 Z" fill="url(#glass14)"/>
+                        <path d="M84,34 L84,42 M114,34 L114,42" stroke="#a8322d" stroke-width="1.5"/>
+                        <!-- door line + handle -->
+                        <path d="M100,44 L100,74" stroke="rgba(0,0,0,0.18)" stroke-width="1.5"/>
+                        <rect x="108" y="52" width="10" height="3" rx="1.5" fill="rgba(0,0,0,0.25)"/>
+                        <!-- lights -->
+                        <path d="M173,48 l7,3 -1,7 -7,-2 z" fill="#ffe27a"/>
+                        <rect x="14" y="58" width="5" height="9" rx="1.5" fill="#ff5a5a"/>
+                        <!-- wheels -->
+                        <circle cx="54" cy="84" r="15" fill="#23262b"/>
+                        <circle cx="54" cy="84" r="7" fill="#c7ccd2"/>
+                        <circle cx="54" cy="84" r="3" fill="#8a9099"/>
+                        <circle cx="144" cy="84" r="15" fill="#23262b"/>
+                        <circle cx="144" cy="84" r="7" fill="#c7ccd2"/>
+                        <circle cx="144" cy="84" r="3" fill="#8a9099"/>
+                    </svg>
+                </div>
+                <h2>2014 Subaru</h2>
+                <span class="badge">Old Faithful</span>
+            </div>
+        </div>
+
+        <div class="home-actions">
+            <button class="btn-ghost" onclick="showCompare()">⚖️ Settle the Score</button>
+        </div>
+    </div>
+
+    <!-- SCREEN 2: Logging Form -->
+    <div id="screen-log" class="screen">
+        <div class="header-bar">
+            <button onclick="goHome()" class="btn-back">⬅ Back</button>
+            <h2 id="active-car-title">Logging</h2>
+            <span class="spacer"></span>
+        </div>
+
+        <form id="log-form" onsubmit="handleLog(event)" novalidate>
+            <div class="input-group">
+                <label for="station-name">Gas station</label>
+                <input type="text" id="station-name" placeholder="e.g. Stewart's, Sunoco" list="station-list" autocomplete="off">
+                <datalist id="station-list"></datalist>
+            </div>
+
+            <div class="input-row">
+                <div class="input-group">
+                    <label for="prev-miles">Previous miles</label>
+                    <input type="number" inputmode="decimal" id="prev-miles" placeholder="Last odometer">
+                </div>
+                <div class="input-group">
+                    <label for="curr-miles">Current miles</label>
+                    <input type="number" inputmode="decimal" id="curr-miles" placeholder="Now">
+                </div>
+            </div>
+
+            <div class="input-row">
+                <div class="input-group">
+                    <label for="gallons">Gallons added</label>
+                    <input type="number" inputmode="decimal" step="0.01" id="gallons" placeholder="e.g. 12.5">
+                </div>
+                <div class="input-group">
+                    <label for="cost">Total cost ($)</label>
+                    <input type="number" inputmode="decimal" step="0.01" id="cost" placeholder="Total paid">
+                </div>
+            </div>
+
+            <div class="field-error" id="form-error"></div>
+
+            <button type="submit" class="btn-submit">Crunch the Numbers</button>
+            <button type="button" class="btn-secondary" onclick="showDashboard()">📊 View stats</button>
+        </form>
+    </div>
+
+    <!-- SCREEN 3: Dashboard -->
+    <div id="screen-dashboard" class="screen">
+        <div class="header-bar">
+            <button onclick="goHome()" class="btn-back">⬅ Home</button>
+            <h2>Stats</h2>
+            <span class="spacer"></span>
+        </div>
+
+        <div class="car-toggle">
+            <button id="toggle-2022" onclick="setDashCar('2022')">2022</button>
+            <button id="toggle-2014" onclick="setDashCar('2014')">2014</button>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h4>Avg MPG</h4>
+                <div id="avg-mpg-display" class="big-number">--</div>
+            </div>
+            <div class="stat-card">
+                <h4>Total spent</h4>
+                <div id="total-cost-display" class="big-number">$0.00</div>
+            </div>
+            <div class="stat-card">
+                <h4>Avg $/gallon</h4>
+                <div id="avg-ppg-display" class="big-number">--</div>
+            </div>
+            <div class="stat-card">
+                <h4>Fill-ups</h4>
+                <div id="fillup-count-display" class="big-number">0</div>
+            </div>
+        </div>
+
+        <h3 class="section-title">🏆 Gas station rankings</h3>
+        <div id="station-rankings" class="rankings-list">
+            <p class="empty-note">No data yet. Log a fill-up to see rankings.</p>
+        </div>
+
+        <h3 class="section-title">📝 Recent fill-ups</h3>
+        <div id="history-list" class="history-list">
+            <p class="empty-note">No fill-ups logged yet.</p>
+        </div>
+
+        <div class="data-controls">
+            <button onclick="exportData()" class="btn-secondary">💾 Download backup</button>
+            <button onclick="document.getElementById('import-file').click()" class="btn-secondary">📂 Restore backup</button>
+            <input type="file" id="import-file" accept="application/json" style="display:none" onchange="importData(this)">
+            <button onclick="clearData()" class="btn-danger">🗑️ Reset all data</button>
+        </div>
+    </div>
+
+    <!-- SCREEN 4: Comparison -->
+    <div id="screen-compare" class="screen">
+        <div class="header-bar">
+            <button onclick="goHome()" class="btn-back">⬅ Home</button>
+            <h2>Head to Head</h2>
+            <span class="spacer"></span>
+        </div>
+        <div id="compare-body"></div>
+    </div>
+
+    <div id="zoom-overlay">
+        <div id="zoom-car" class="zoom-car-anim"></div>
+    </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+    let currentVehicle = null;
+    let dashCar = '2022';
+    let appData = { vehicles: { '2022': [], '2014': [] } };
+
+    window.onload = function() {
+        loadData();
+        updateStationList();
+    };
+
+    function cardKey(e, year) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectCar(year); }
+    }
+
+    // --- Navigation ---
+    function showScreen(id) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+    }
+
+    function selectCar(year) {
+        currentVehicle = year;
+        dashCar = year;
+
+        const overlay = document.getElementById('zoom-overlay');
+        const carAnim = document.getElementById('zoom-car');
+        // Reuse the same car drawing shown on the selection card
+        const cardSvg = document.querySelector(
+            `.car-card[onclick="selectCar('${year}')"] .car-visual svg`);
+        carAnim.innerHTML = cardSvg ? cardSvg.outerHTML : '';
+        overlay.classList.add('active');
+        carAnim.classList.add('zooming');
+        playZoomSound();
+
+        setTimeout(() => {
+            overlay.classList.remove('active');
+            carAnim.classList.remove('zooming');
+            showScreen('screen-log');
+            document.getElementById('active-car-title').innerText = `${year} Outback`;
+            clearFormErrors();
+
+            const list = appData.vehicles[year];
+            const lastEntry = list[list.length - 1];
+            document.getElementById('curr-miles').value = '';
+            document.getElementById('gallons').value = '';
+            document.getElementById('cost').value = '';
+            if (lastEntry) {
+                document.getElementById('prev-miles').value = lastEntry.currentOdometer;
+                document.getElementById('station-name').value = lastEntry.station || '';
+            } else {
+                document.getElementById('prev-miles').value = '';
+                document.getElementById('station-name').value = '';
+            }
+        }, 800);
+    }
+
+    function goHome() {
+        showScreen('screen-select');
+    }
+
+    function showDashboard() {
+        if (currentVehicle) dashCar = currentVehicle;
+        showScreen('screen-dashboard');
+        renderDashboard();
+    }
+
+    function setDashCar(year) {
+        dashCar = year;
+        renderDashboard();
+    }
+
+    // --- Logging ---
+    function clearFormErrors() {
+        document.getElementById('form-error').innerText = '';
+        ['station-name','prev-miles','curr-miles','gallons','cost'].forEach(id =>
+            document.getElementById(id).classList.remove('invalid'));
+    }
+
+    function handleLog(e) {
+        e.preventDefault();
+        clearFormErrors();
+
+        const stationEl = document.getElementById('station-name');
+        const station = stationEl.value.trim() || 'Unknown';
+        const prevMiles = parseFloat(document.getElementById('prev-miles').value);
+        const currMiles = parseFloat(document.getElementById('curr-miles').value);
+        const gallons = parseFloat(document.getElementById('gallons').value);
+        const cost = parseFloat(document.getElementById('cost').value);
+
+        const errors = [];
+        if (isNaN(prevMiles)) { errors.push('prev-miles'); }
+        if (isNaN(currMiles)) { errors.push('curr-miles'); }
+        if (isNaN(gallons) || gallons <= 0) { errors.push('gallons'); }
+        if (isNaN(cost) || cost < 0) { errors.push('cost'); }
+
+        if (errors.length) {
+            errors.forEach(id => document.getElementById(id).classList.add('invalid'));
+            document.getElementById('form-error').innerText = 'Please fill in all fields with valid numbers.';
+            return;
+        }
+        if (currMiles <= prevMiles) {
+            document.getElementById('curr-miles').classList.add('invalid');
+            document.getElementById('prev-miles').classList.add('invalid');
+            document.getElementById('form-error').innerText = 'Current miles must be higher than previous miles.';
+            return;
+        }
+
+        const distance = currMiles - prevMiles;
+        const mpg = distance / gallons;
+
+        appData.vehicles[currentVehicle].push({
+            date: new Date().toISOString(),
+            station: station,
+            previousOdometer: prevMiles,
+            currentOdometer: currMiles,
+            gallons: gallons,
+            totalCost: cost,
+            pricePerGallon: cost / gallons,
+            mpg: mpg
+        });
+
+        saveData();
+        updateStationList();
+        showToast(`Saved! ${mpg.toFixed(1)} MPG at ${station}`, 'success');
+
+        // Roll odometer forward for the next entry
+        document.getElementById('prev-miles').value = currMiles;
+        document.getElementById('curr-miles').value = '';
+        document.getElementById('gallons').value = '';
+        document.getElementById('cost').value = '';
+        document.getElementById('curr-miles').focus();
+    }
+
+    // --- Dashboard ---
+    function summarize(entries) {
+        let totalCost = 0, totalDistance = 0, totalGallons = 0;
+        entries.forEach(e => {
+            totalCost += e.totalCost;
+            totalDistance += (e.currentOdometer - e.previousOdometer);
+            totalGallons += e.gallons;
+        });
+        return {
+            totalCost, totalDistance, totalGallons,
+            avgMpg: totalGallons > 0 ? totalDistance / totalGallons : 0,
+            avgPpg: totalGallons > 0 ? totalCost / totalGallons : 0,
+            count: entries.length
+        };
+    }
+
+    function renderDashboard() {
+        document.getElementById('toggle-2022').classList.toggle('active', dashCar === '2022');
+        document.getElementById('toggle-2014').classList.toggle('active', dashCar === '2014');
+
+        const entries = appData.vehicles[dashCar];
+        const s = summarize(entries);
+
+        document.getElementById('avg-mpg-display').innerText = s.count ? s.avgMpg.toFixed(1) : '--';
+        document.getElementById('total-cost-display').innerText = `$${s.totalCost.toFixed(2)}`;
+        document.getElementById('avg-ppg-display').innerText = s.count ? `$${s.avgPpg.toFixed(2)}` : '--';
+        document.getElementById('fillup-count-display').innerText = s.count;
+
+        renderRankings(entries);
+        renderHistory(entries);
+    }
+
+    function renderRankings(entries) {
+        const container = document.getElementById('station-rankings');
+        if (!entries.length) {
+            container.innerHTML = '<p class="empty-note">No data yet. Log a fill-up to see rankings.</p>';
+            return;
+        }
+        const stats = {};
+        entries.forEach(e => {
+            const st = e.station;
+            if (!stats[st]) stats[st] = { count: 0, dist: 0, gal: 0 };
+            stats[st].count++;
+            stats[st].dist += (e.currentOdometer - e.previousOdometer);
+            stats[st].gal += e.gallons;
+        });
+        const rankings = Object.keys(stats).map(st => ({
+            name: st,
+            avgMpg: stats[st].dist / stats[st].gal,
+            count: stats[st].count
+        })).sort((a, b) => b.avgMpg - a.avgMpg);
+
+        container.innerHTML = '';
+        rankings.forEach((r, i) => {
+            const div = document.createElement('div');
+            div.className = 'rank-item';
+            if (i === 0 && r.count >= 3) div.classList.add('rank-winner');
+            const warn = r.count < 3
+                ? `<div class="warn-note">⚠️ ${r.count} fill-up${r.count===1?'':'s'} — need 3+ to be reliable</div>` : '';
+            div.innerHTML = `
+                <div><strong>${i + 1}. ${escapeHtml(r.name)}</strong>${warn}</div>
+                <div style="text-align:right">
+                    <span class="rank-mpg">${r.avgMpg.toFixed(1)} MPG</span><br>
+                    <small class="history-meta">${r.count} trip${r.count===1?'':'s'}</small>
+                </div>`;
+            container.appendChild(div);
+        });
+    }
+
+    function renderHistory(entries) {
+        const container = document.getElementById('history-list');
+        if (!entries.length) {
+            container.innerHTML = '<p class="empty-note">No fill-ups logged yet.</p>';
+            return;
+        }
+        container.innerHTML = '';
+        // Iterate by index so deletion targets the correct entry even if two
+        // fill-ups have identical values (indexOf would return the wrong one).
+        for (let realIndex = entries.length - 1; realIndex >= 0; realIndex--) {
+            const e = entries[realIndex];
+            const d = new Date(e.date);
+            const dateStr = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+            const div = document.createElement('div');
+            div.className = 'history-item';
+            div.innerHTML = `
+                <div>
+                    <strong>${e.mpg.toFixed(1)} MPG</strong> · ${escapeHtml(e.station)}<br>
+                    <span class="history-meta">${dateStr} · ${e.gallons.toFixed(2)} gal · $${e.totalCost.toFixed(2)}</span>
+                </div>
+                <button class="history-delete" onclick="deleteEntry(${realIndex})">Delete</button>`;
+            container.appendChild(div);
+        }
+    }
+
+    function deleteEntry(index) {
+        appData.vehicles[dashCar].splice(index, 1);
+        saveData();
+        updateStationList();
+        renderDashboard();
+        showToast('Fill-up deleted.', 'success');
+    }
+
+    // --- Comparison ---
+    function showCompare() {
+        showScreen('screen-compare');
+        const a = summarize(appData.vehicles['2022']);
+        const b = summarize(appData.vehicles['2014']);
+        const body = document.getElementById('compare-body');
+
+        if (!a.count && !b.count) {
+            body.innerHTML = '<p class="empty-note">Log fill-ups for both cars to compare them.</p>';
+            return;
+        }
+
+        const better = (x, y, higherWins) => {
+            if (!a.count || !b.count) return '';
+            if (x === y) return '';
+            const xWins = higherWins ? x > y : x < y;
+            return xWins ? '<span class="winner-tag">Winner</span>' : '';
+        };
+
+        body.innerHTML = `
+            <div class="compare-grid">
+                <div class="compare-col">
+                    <h3>2022</h3>
+                    <div class="compare-row"><span>Avg MPG</span><strong>${a.count ? a.avgMpg.toFixed(1) : '--'}</strong></div>
+                    <div class="compare-row"><span>$/gallon</span><strong>${a.count ? '$'+a.avgPpg.toFixed(2) : '--'}</strong></div>
+                    <div class="compare-row"><span>Total spent</span><strong>$${a.totalCost.toFixed(2)}</strong></div>
+                    <div class="compare-row"><span>Fill-ups</span><strong>${a.count}</strong></div>
+                    ${better(a.avgMpg, b.avgMpg, true)}
+                </div>
+                <div class="compare-col">
+                    <h3>2014</h3>
+                    <div class="compare-row"><span>Avg MPG</span><strong>${b.count ? b.avgMpg.toFixed(1) : '--'}</strong></div>
+                    <div class="compare-row"><span>$/gallon</span><strong>${b.count ? '$'+b.avgPpg.toFixed(2) : '--'}</strong></div>
+                    <div class="compare-row"><span>Total spent</span><strong>$${b.totalCost.toFixed(2)}</strong></div>
+                    <div class="compare-row"><span>Fill-ups</span><strong>${b.count}</strong></div>
+                    ${better(b.avgMpg, a.avgMpg, true)}
+                </div>
+            </div>`;
+    }
+
+    // --- Station autocomplete ---
+    function updateStationList() {
+        const dataList = document.getElementById('station-list');
+        dataList.innerHTML = '';
+        const stations = new Set();
+        [...appData.vehicles['2022'], ...appData.vehicles['2014']].forEach(e => {
+            if (e.station) stations.add(e.station);
+        });
+        stations.forEach(s => {
+            const opt = document.createElement('option');
+            opt.value = s;
+            dataList.appendChild(opt);
+        });
+    }
+
+    // --- Persistence ---
+    function saveData() {
+        try { localStorage.setItem('outbackMpgData', JSON.stringify(appData)); }
+        catch (e) { showToast('Could not save — storage may be full or blocked.', 'error'); }
+    }
+
+    function loadData() {
+        try {
+            const saved = localStorage.getItem('outbackMpgData');
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                if (parsed.vehicles && parsed.vehicles['2022'] && parsed.vehicles['2014']) {
+                    appData = parsed;
+                }
+            }
+        } catch (e) { console.error('Error loading data', e); }
+    }
+
+    function exportData() {
+        const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(appData));
+        const a = document.createElement('a');
+        a.setAttribute('href', dataStr);
+        a.setAttribute('download', 'outback_mpg_backup.json');
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        showToast('Backup downloaded.', 'success');
+    }
+
+    function importData(input) {
+        const file = input.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const imported = JSON.parse(e.target.result);
+                if (imported.vehicles && imported.vehicles['2022'] && imported.vehicles['2014']) {
+                    appData = imported;
+                    saveData();
+                    updateStationList();
+                    showToast('Backup restored.', 'success');
+                    if (document.getElementById('screen-dashboard').classList.contains('active')) renderDashboard();
+                } else {
+                    showToast('That file isn\'t a valid backup.', 'error');
+                }
+            } catch (err) {
+                showToast('Could not read that file. Is it a valid JSON backup?', 'error');
+            }
+        };
+        reader.readAsText(file);
+        input.value = '';
+    }
+
+    function clearData() {
+        if (confirm('Delete ALL logged data for both cars? This cannot be undone.')) {
+            appData = { vehicles: { '2022': [], '2014': [] } };
+            saveData();
+            updateStationList();
+            renderDashboard();
+            showToast('All data cleared.', 'success');
+        }
+    }
+
+    // --- Helpers ---
+    function escapeHtml(str) {
+        return String(str).replace(/[&<>"']/g, c => (
+            { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]
+        ));
+    }
+
+    let toastTimer;
+    function showToast(msg, type) {
+        const t = document.getElementById('toast');
+        t.innerText = msg;
+        t.className = 'show' + (type ? ' ' + type : '');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => { t.className = ''; }, 2800);
+    }
+
+    function playZoomSound() {
+        try {
+            const AC = window.AudioContext || window.webkitAudioContext;
+            if (!AC) return;
+            const ctx = new AC();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(200, ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(600, ctx.currentTime + 0.3);
+            gain.gain.setValueAtTime(0.1, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+            osc.connect(gain); gain.connect(ctx.destination);
+            osc.start(); osc.stop(ctx.currentTime + 0.3);
+        } catch (e) {}
+    }
+</script>
+</body>
+</html>
